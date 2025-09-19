@@ -1,76 +1,53 @@
-""" Contain core classes: Question and Quiz"""
-
-from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+""" Contain core classes: Question and Qiz """
 import time
 
-@dataclass
+
 class Question:
-    """ Represents one multiple-choice question"""
-    text: str
-    option: List[str]
-    answer: int
+    """Represents one multiple-choice question"""
+    def __init__(self, text: str, options: list[str], answer: str):
+        self.text = text
+        self.options = options
+        self.answer = answer  # correct answer string
+
 
 class Quiz:
-    """ Manages the quiz logic in SURVIVAL MODE:
-    - User keeps answering until they get one wrong
-    - Score increases for each correct answer.
     """
-    def __init__(self, questions: List[Question], username: str, difficulty: str):
-        if not questions:
-            raise ValueError("Quiz must have at least one question")
+    Manages the quiz logic in SURVIVAL MODE:
+    - User answer till they get one wrong
+    - Score increases for each correct answer
+    """
+    def __init__(self, questions: list[Question], username: str, difficulty: str):
         self.questions = questions
         self.username = username
         self.difficulty = difficulty
-        self.index = 0
+        self.current_index = 0
         self.score = 0
-        self.start_time: Optional[float] = None
-        self.end_time: Optional[float] = None
+        self.start_time = time.time()
 
-    def next_question(self)-> Optional[Question]:
-        """ Return current question (without advancing)."""
-        if self.start_time is None:
-            self.start_time = time.time()
-        if self.index < len(self.questions):
-            return self.questions[self.index]
-        return None
+    def get_current_question(self):
+        """Return current question text and options"""
+        if self.current_index < len(self.questions):
+            q = self.questions[self.current_index]
+            return q.text, q.options
+        return None, None
 
-    def submit(self, choice: int)->Dict[str, Any]:
-        """ Submit answer choice (0-based index).
-        - if wrong: quiz ends immediately.
-        - if correct: score++, advance to next question.
-        """
+    def check_answer(self, choice: str):
+        """Check if answer is correct"""
+        question = self.questions[self.current_index]
+        return choice.strip().lower() == question.answer.strip().lower()
 
-        if self.index >= len(self.questions):
-            return {"Finished": True, "message": "Quiz already finished"}
-
-        q = self.questions[self.index]
-        is_correct = (choice == q.answer)
-
-        if is_correct:
-            self.index += 1
-            self.score += 1
-            if self.index >= len(self.questions):
-                self.end_time = time.time()
-                return {"is_correct": True, "finished": True, "next_question": None}
-            else:
-                return {"is_correct": True, "finished": False,
-                        "next_question": self.questions[self.index]}
-        else:
-            self.end_time = time.time()
-            return {"is_correct": False, "finished": True, "next_question": None}
+    def next_question(self):
+        """Move to next question"""
+        self.current_index += 1
+        return self.get_current_question()
 
     def summary(self):
-        """Return Final game stats."""
-
-        total = len(self.questions)
-        time_taken = (self.end_time or time.time()) - (self.start_time or time.time())
-
+        """Return quiz result summary"""
+        elapsed = round(time.time() - self.start_time, 2)
         return {
-            "Username": self.username,
-            "Difficulty": self.difficulty,
-            "Score": self.score,
-            "_questions": total,
-            "Accuracy": (self.score / total * 100.0) if total else 0.0,
-            "Time_taken": round(time_taken, 1)
+            "username": self.username,
+            "difficulty": self.difficulty,
+            "score": self.score,
+            "total": len(self.questions),
+            "time": elapsed,
         }
